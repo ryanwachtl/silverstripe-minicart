@@ -1,6 +1,6 @@
 /*!
  * The PayPal Mini Cart 
- * Visit https://minicart.paypal-labs.com/ for details
+ * Visit http://www.minicartjs.com/ for details
  * Use subject to license agreement as set forth at the link below
  * 
  * @author Jeff Harrell
@@ -35,6 +35,11 @@ PAYPAL.apps = PAYPAL.apps || {};
 		edgeDistance: '50px',
 		
 		/**
+		 * HTML target property for the checkout form
+		 */
+		formTarget: null,
+		
+		/**
 		 * The base path of your website to set the cookie to
 		 */		
 		cookiePath: '/',
@@ -46,7 +51,8 @@ PAYPAL.apps = PAYPAL.apps || {};
 			button: '',
 			subtotal: '',
 			discount: '',
-			shipping: ''
+			shipping: '',
+			processing: ''
 		},
 		
 		/**
@@ -163,61 +169,44 @@ PAYPAL.apps = PAYPAL.apps || {};
 	PAYPAL.apps.MiniCart = (function () {
 		
 		var minicart = {},
-			isShowing = false
-		;
+			isShowing = false,
+			isRendered = false;
 				
 				
 		/** PRIVATE **/
 		
+		/**
+		 * PayPal form cmd values which are supported
+		 */
+		var SUPPORTED_CMDS = { _cart: true, _xclick: true };
+		
 		
 		/**
-		 * Regex filter for product values, which appear multiple times in a cart
+		 * The form origin that is passed to PayPal
 		 */
-		var productFilter = /^(?:item_number|item_name|amount|quantity|on|os|option_|tax|weight|handling|shipping|discount)/;
+		var BN_VALUE = 'MiniCart_AddToCart_WPS_US';
 		
 		
 		/**
 		 * Regex filter for cart settings, which appear only once in a cart
 		 */
-		var settingFilter = /^(?:business|currency_code|lc|paymentaction|no_shipping|cn|no_note|invoice|handling_cart|weight_cart|weight_unit|tax_cart|page_style|image_url|cpp_|cs|cbt|return|cancel_return|notify_url|rm|custom|charset)/;
-		
-			
-		/**
-		 * Renders the cart to the page and sets up it's events
-		 */
-		var _render = function () {
-			var events = config.events,
-				onRender = events.onRender,
-				afterRender = events.afterRender
-			;
-			
-			if (typeof onRender == 'function') {
-				onRender.call(minicart);
-			}
-			
-			_addCSS();
-			_buildDOM();
-			_bindEvents();
-			
-			if (typeof afterRender == 'function') {
-				afterRender.call(minicart);
-			}
-		};
+		var SETTING_FILTER = /^(?:business|currency_code|lc|paymentaction|no_shipping|cn|no_note|invoice|handling_cart|weight_cart|weight_unit|tax_cart|page_style|image_url|cpp_|cs|cbt|return|cancel_return|notify_url|rm|custom|charset)/;
 		
 		
 		/**
-		 * Adds the cart's CSS to the page
+		 * Adds the cart's CSS to the page in a <style> element.
+		 * The CSS lives in this file so that it can leverage properties from the config 
+		 * and doesn't require an additional download. To override the CSS see the FAQ.
 		 */
 		var _addCSS = function () {
 			var name = config.name,
 				css = [],
-				style, head
-			;
+				style, head;
 
 			css.push('#' + name + ' form { position:fixed; float:none; top:-250px; ' + config.displayEdge + ':' + config.edgeDistance + '; width:265px; margin:0; padding:50px 10px 0; min-height:170px; background:#fff url(' + config.assetURL + 'images/minicart_sprite.png) no-repeat -125px -60px; border:1px solid #999; border-top:0; font:13px/normal arial, helvetica; color:#333; text-align:left; -moz-border-radius:0 0 8px 8px; -webkit-border-radius:0 0 8px 8px; border-radius:0 0 8px 8px; -moz-box-shadow:1px 1px 1px rgba(0, 0, 0, 0.1); -webkit-box-shadow:1px 1px 1px rgba(0, 0, 0, 0.1); box-shadow:1px 1px 1px rgba(0, 0, 0, 0.1); } ');
 			css.push('#' + name + ' ul { position:relative; overflow-x:hidden; overflow-y:auto; height:130px; margin:0 0 7px; padding:0; list-style-type:none; border-top:1px solid #ccc; border-bottom:1px solid #ccc; } ');
 			css.push('#' + name + ' li { position:relative; margin:-1px 0 0; padding:6px 5px 6px 0; border-top:1px solid #f2f2f2; } ');
-			css.push('#' + name + ' li a { color:#333; text-decoration:none; } ');
+			css.push('#' + name + ' li a { display: block; width: 155px; color:#333; text-decoration:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } ');
 			css.push('#' + name + ' li a span { color:#999; font-size:10px; } ');
 			css.push('#' + name + ' li .quantity { position:absolute; top:.5em; right:78px; width:22px; padding:1px; border:1px solid #83a8cc; text-align:right; } ');
 			css.push('#' + name + ' li .price { position:absolute; top:.5em; right:4px; } ');
@@ -246,8 +235,7 @@ PAYPAL.apps = PAYPAL.apps || {};
 		 */
 		var _buildDOM = function () {
 			var UI = minicart.UI,
-				cmd, type, bn, parent, version
-			;
+				cmd, type, bn, parent, version;
 			
 			UI.wrapper = document.createElement('div');
 			UI.wrapper.id = config.name;
@@ -263,11 +251,16 @@ PAYPAL.apps = PAYPAL.apps || {};
 			
 			bn = cmd.cloneNode(false);
 			bn.name = 'bn';
-			bn.value = 'MiniCart_AddToCart_WPS_US';
+			bn.value = BN_VALUE;
 			
 			UI.cart = document.createElement('form');
 			UI.cart.method = 'post';
 			UI.cart.action = config.paypalURL;
+			
+			if (config.formTarget) {
+				UI.cart.target = config.formTarget;
+			}
+			
 			UI.cart.appendChild(cmd);
 			UI.cart.appendChild(type);
 			UI.cart.appendChild(bn);
@@ -322,7 +315,8 @@ PAYPAL.apps = PAYPAL.apps || {};
 		 * Attaches the cart events to it's DOM elements
 		 */
 		var _bindEvents =function () {
-			var forms, form, i;
+			var ui = minicart.UI,
+				forms, form, i;
 			
 			// Look for all "Cart" and "Buy Now" forms on the page and attach events
 			forms = document.getElementsByTagName('form');
@@ -330,19 +324,20 @@ PAYPAL.apps = PAYPAL.apps || {};
 			for (i = 0; i < forms.length; i++) {
 				form = forms[i];
 				
-				if (form.cmd && (form.cmd.value === '_cart' || form.cmd.value === '_xclick')) {
-					minicart.bindForm(form);	
+				if (form.cmd && SUPPORTED_CMDS[form.cmd.value]) {
+					minicart.bindForm(form);
 				}
 			}
 			
 			// Hide the Mini Cart for all non-cart related clicks
 			$.event.add(document, 'click', function (e) {
 				if (isShowing) {
-					var target = e.target;
+					var target = e.target,
+						cartEl = ui.cart;
 
 					if (!(/input|button|select|option/i.test(target.tagName))) {
 						while (target.nodeType === 1) {
-							if (target === minicart.UI.cart) {
+							if (target === cartEl) {
 								return;
 							}
 
@@ -355,42 +350,48 @@ PAYPAL.apps = PAYPAL.apps || {};
 			});
 			
 			// Run the checkout code when submitting the form
-			$.event.add(minicart.UI.cart, 'submit', function (e) {
+			$.event.add(ui.cart, 'submit', function (e) {
 				_checkout(e);
 			});
 			
 			// Show the cart when clicking on the summary
-			$.event.add(minicart.UI.summary, 'click', function (e) {
+			$.event.add(ui.summary, 'click', function (e) {
 				var target = e.target;
 				
-				if (target !== minicart.UI.button) {
+				if (target !== ui.button) {
 					minicart.toggle(e);
 				}
 			}); 
 
 			// Update other windows when HTML5 localStorage is updated
-			function redrawCartItems() {
-				minicart.products = [];
-				minicart.UI.itemList.innerHTML = '';
-				minicart.UI.subtotalAmount.innerHTML = '';
-		
-				_parseStorage();
-				minicart.updateSubtotal();
-			}
-			
 			if (window.attachEvent && !window.opera) {
 				$.event.add(document, 'storage', function (e) {
 					// IE needs a delay in order to properly see the change
-					setTimeout(redrawCartItems, 100);
+					setTimeout(_redrawCartItems, 100);
 				});			
 			} else {
 				$.event.add(window, 'storage', function (e) {
 					// Safari, Chrome, and Opera can filter on updated storage key	
 					// Firefox can't so it uses a brute force approach
 					if ((e.key && e.key == config.name) || !e.key) {
-						redrawCartItems();
+						_redrawCartItems();
 					}
 				});
+			}
+		};
+
+
+		/**
+		 * Parses the userConfig (if applicable) and overwrites the default values
+		 */
+		var _parseUserConfig = function (userConfig) {
+			var key;
+			
+			// TODO: This should recursively merge the config values
+			for (key in userConfig) {
+				if (typeof config[key] !== undefined) {
+					config[key] = userConfig[key];
+				}
 			}
 		};
 
@@ -422,8 +423,7 @@ PAYPAL.apps = PAYPAL.apps || {};
 		var _parseForm = function (form) {
 			var raw = form.elements,
 				data = {},
-				pair, value, length, i, len
-			;
+				pair, value, length, i, len;
 			
 			for (i = 0, len = raw.length; i < len; i++) {
 				pair = raw[i];
@@ -446,14 +446,13 @@ PAYPAL.apps = PAYPAL.apps || {};
 		var _parseData = function (data) {
 			var product = {},
 				settings = {},
-				existing, option_index, key, len, match, i, j
-			;
+				existing, option_index, key, len, match, i, j;
 			
 			// Parse the data into a two categories: product and settings
 			for (key in data) {
-				if (settingFilter.test(key)) {
+				if (SETTING_FILTER.test(key)) {
 					settings[key] = data[key];
-				} else if (productFilter.test(key)) {
+				} else {
 					product[key] = data[key];
 				}
 			}
@@ -519,6 +518,19 @@ PAYPAL.apps = PAYPAL.apps || {};
 			};
 		};
 		
+
+		/**
+		 * Resets the card and renders the products
+		 */
+		var _redrawCartItems = function () {
+			minicart.products = [];
+			minicart.UI.itemList.innerHTML = '';
+			minicart.UI.subtotalAmount.innerHTML = '';
+	
+			_parseStorage();
+			minicart.updateSubtotal();
+		};
+		
 		
 		/**
 		 * Renders the product in the cart
@@ -526,21 +538,21 @@ PAYPAL.apps = PAYPAL.apps || {};
 		 * @param data {object} The data for the product
 		 */
 		var _renderProduct = function (data) {
-			var keyupTimer,
+			var ui = minicart.UI,
+				cartEl = ui.cart,
 				product = new ProductNode(data, minicart.UI.itemList.children.length + 1),
 				offset = data.product.offset,
-				hiddenInput, key
-			;
+				keyupTimer, hiddenInput, key;
 				
 			minicart.products[offset] = product;
 			
 			// Add hidden settings data to parent form
 			for (key in data.settings) {
-				if (minicart.UI.cart.elements[key]) {
-					if (minicart.UI.cart.elements[key].value) {
-						minicart.UI.cart.elements[key].value = data.settings[key];
+				if (cartEl.elements[key]) {
+					if (cartEl.elements[key].value) {
+						cartEl.elements[key].value = data.settings[key];
 					} else {
-						minicart.UI.cart.elements[key] = data.settings[key];
+						cartEl.elements[key] = data.settings[key];
 					}
 				} else {
 					hiddenInput = document.createElement('input');
@@ -548,7 +560,7 @@ PAYPAL.apps = PAYPAL.apps || {};
 					hiddenInput.name = key;
 					hiddenInput.value = data.settings[key];
 			
-					minicart.UI.cart.appendChild(hiddenInput);
+					cartEl.appendChild(hiddenInput);
 				}
 			}
 			
@@ -558,14 +570,14 @@ PAYPAL.apps = PAYPAL.apps || {};
 			// otherwise, setup the new element
 			} else {
 				// Click event for "x"
-				$.event.add(product.removeNode, 'click', function () {
+				$.event.add(product.removeInput, 'click', function () {
 					_removeProduct(product, offset);
 				});
 			
 				// Event for changing quantities
-				var currentValue = product.quantityNode.value;
+				var currentValue = product.quantityInput.value;
 				
-				$.event.add(product.quantityNode, 'keyup', function () {
+				$.event.add(product.quantityInput, 'keyup', function () {
 					var that = this;
 					
 					keyupTimer = setTimeout(function () {
@@ -588,7 +600,7 @@ PAYPAL.apps = PAYPAL.apps || {};
 				});
 			
 				// Add the item and fade it in
-				minicart.UI.itemList.appendChild(product.liNode);
+				ui.itemList.insertBefore(product.liNode, ui.itemList.firstChild);
 				$.util.animate(product.liNode, 'opacity', { from: 0, to: 1 });
 				
 				return true;	
@@ -605,15 +617,16 @@ PAYPAL.apps = PAYPAL.apps || {};
 		var _removeProduct = function (product, offset) {
 			var events = config.events,
 				onRemoveFromCart = events.onRemoveFromCart,
-				afterRemoveFromCart = events.afterRemoveFromCart
-			;
+				afterRemoveFromCart = events.afterRemoveFromCart;
 				
 			if (typeof onRemoveFromCart == 'function') {
-				onRemoveFromCart.call(minicart, product);
+				if (onRemoveFromCart.call(minicart, product) === false) {
+					return;
+				}
 			}
 			
 			product.setQuantity(0);
-			product.quantityNode.style.display = 'none';
+			product.quantityInput.style.display = 'none';
 		
 			$.util.animate(product.liNode, 'opacity', { from: 1, to: 0 }, function () {
 				$.util.animate(product.liNode, 'height', { from: 18, to: 0 }, function () {
@@ -630,8 +643,7 @@ PAYPAL.apps = PAYPAL.apps || {};
 						inputs_len,
 						input,
 						matches,
-						i, j, k = 1
-					;
+						i, j, k = 1;
 					
 					for (i = 0 ; i < products_len; i++) {
 						inputs = products[i].getElementsByTagName('input');
@@ -672,8 +684,13 @@ PAYPAL.apps = PAYPAL.apps || {};
 			var onCheckout = config.events.onCheckout;
 			
 			if (typeof onCheckout == 'function') {
-				onCheckout.call(minicart, e);
+				if (onCheckout.call(minicart, e) === false) {
+					e.preventDefault();
+					return;
+				}
 			}
+			
+			minicart.UI.button.value = config.strings.processing || 'Processing…';
 		};
 		
 		
@@ -698,43 +715,63 @@ PAYPAL.apps = PAYPAL.apps || {};
 		 * @param userConfig {object} User settings which override the default configuration
 		 */
 		minicart.render = function (userConfig) {
-			var hash, cmd, key, i;
+			var events = config.events,
+				onRender = events.onRender,
+				afterRender = events.afterRender,
+				hash, cmd;
 				
-			// Overwrite default configuration with user settings
-			for (key in userConfig) {
-				if (config[key]) {
-					config[key] = userConfig[key];
+			if (typeof onRender == 'function') {
+				if (onRender.call(minicart) === false) {
+					return;
 				}
 			}
+				
+			if (!isRendered) {
+				// Overwrite default configuration with user settings
+				_parseUserConfig(userConfig);
+				
+				// Render the cart UI
+				_addCSS();
+				_buildDOM();
+				_bindEvents();
+				
+				// Check if a transaction was completed
+				// The "return" form param is modified to contain a hash value
+				// with "PPMiniCart=reset". If this is seen then it's assumed
+				// that a transaction was completed and we should reset the cart. 
+				hash = location.hash.substring(1);
+				
+				if (hash.indexOf(config.name + '=') === 0) {
+					cmd = hash.split('=')[1];
 
-			// Render the cart UI
-			_render();
-		
-			// Process any stored data
-			_parseStorage();
-						
-			// Check if a transaction was completed
-			hash = location.hash.substring(1);
+					if (cmd == 'reset') {
+						minicart.reset();
+						location.hash = '';
+					}
+				}
+			} 
 			
-			if (hash.indexOf(config.name + '=') === 0) {
-				cmd = hash.split('=')[1];
-				
-				if (cmd == 'reset') {
-					minicart.reset();
-					location.hash = '';
+			// Process any stored data and render it
+			// TODO: _parseStorage shouldn't be so tightly coupled here and one
+			// should be able to redraw without re-parsing the storage
+			_redrawCartItems();
+					
+			// Trigger the cart to peek on first load if any products were loaded
+			if (!isRendered) {
+				if (isShowing) {
+					setTimeout(function () {
+						minicart.hide(null);
+					}, 500);
+				} else {
+					$.storage.remove();
 				}
 			}
-					
-			// Update the UI
-			if (isShowing) {
-				setTimeout(function () {
-					minicart.hide(null);
-				}, 500);
-			} else {
-				$.storage.remove();
-			}
-
-			minicart.updateSubtotal();
+			
+			isRendered = true;
+			
+			if (typeof afterRender == 'function') {
+				afterRender.call(minicart);
+			}			
 		};
 
 
@@ -775,24 +812,22 @@ PAYPAL.apps = PAYPAL.apps || {};
 				onAddToCart = events.onAddToCart,
 				afterAddToCart = events.afterAddToCart,
 				success = false,
-				offset
-			;
-			
-			if (typeof onAddToCart === 'function') {
-				if (onAddToCart.call(minicart, data) === false) {
-					return;
-				}
-			}
+				productNode, offset;
 			
 			data = _parseData(data);
 			offset = data.product.offset;
 			
+			if (typeof onAddToCart === 'function') {
+				if (onAddToCart.call(minicart, data.product) === false) {
+					return;
+				}
+			}
+			
 			// Check if the product has already been added; update if so
-			if (typeof offset != 'undefined' && minicart.products[offset]) {
-				minicart.products[offset].product.quantity += parseInt(data.product.quantity || 1, 10);
-				
-				minicart.products[offset].setPrice(data.product.amount * minicart.products[offset].product.quantity);
-				minicart.products[offset].setQuantity(minicart.products[offset].product.quantity);
+			if ((productNode = this.getProductAtOffset(offset))) {
+				productNode.product.quantity += parseInt(data.product.quantity || 1, 10);
+				productNode.setPrice(data.product.amount * productNode.product.quantity);
+				productNode.setQuantity(productNode.product.quantity);
 				
 				success = true;
 			// Add a new DOM element for the product
@@ -812,6 +847,17 @@ PAYPAL.apps = PAYPAL.apps || {};
 			
 			return success;
 		};
+		
+		
+		/**
+		 * Returns a product from the Mini Cart's interal storage
+		 *
+		 * @param offset {number} The offset of the product
+		 * @return {ProductNode}
+		 */
+		minicart.getProductAtOffset = function (offset) {
+			return (typeof offset !== 'undefined' && this.products[offset]);
+		};
 
 
 		/**
@@ -821,14 +867,16 @@ PAYPAL.apps = PAYPAL.apps || {};
 		 */
 		minicart.calculateSubtotal = function () {
 			var amount = 0,
-				product, price, discount, len, i
-			;
+				products = minicart.products,
+				product, item, price, discount, len, i;
 				
-			for (i = 0, len = minicart.products.length; i < len; i++) {
-				if ((product = minicart.products[i].product)) {
+			for (i = 0, len = products.length; i < len; i++) {
+				item = products[i];
+				
+				if ((product = item.product)) {
 					if (product.quantity && product.amount) {
 						price = product.amount;
-						discount = (product.discount_amount) ? product.discount_amount : 0;
+						discount = item.getDiscount();
 						
 						amount += parseFloat((price * product.quantity) - discount);
 					}
@@ -843,40 +891,40 @@ PAYPAL.apps = PAYPAL.apps || {};
 		 * Updates the UI with the current subtotal and currency code
 		 */
 		minicart.updateSubtotal = function () {
-			var currency_code,
-				currency_symbol,
+			var ui = minicart.UI,
+				cartEl = ui.cart.elements,
+				subtotalEl = ui.subtotalAmount,
 				subtotal = minicart.calculateSubtotal(),
 				level = 1,
-				hex, len, i
-			;
+				currency_code, currency_symbol, hex, len, i;
 
 			// Get the currency
 			currency_code = '';
 			currency_symbol = '';
 
-			if (minicart.UI.cart.elements.currency_code) {
-				currency_code = minicart.UI.cart.elements.currency_code.value || minicart.UI.cart.elements.currency_code;
+			if (cartEl.currency_code) {
+				currency_code = cartEl.currency_code.value || cartEl.currency_code;
 			} else {			
-				for (i = 0, len = minicart.UI.cart.elements.length; i < len; i++) {
-					if (minicart.UI.cart.elements[i].name == 'currency_code') {
-						currency_code = minicart.UI.cart.elements[i].value || minicart.UI.cart.elements[i];
+				for (i = 0, len = cartEl.length; i < len; i++) {
+					if (cartEl[i].name == 'currency_code') {
+						currency_code = cartEl[i].value || cartEl[i];
 						break;
 					}
 				}
 			}
 
 			// Update the UI		
-			minicart.UI.subtotalAmount.innerHTML = $.util.formatCurrency(subtotal, currency_code); 
+			subtotalEl.innerHTML = $.util.formatCurrency(subtotal, currency_code); 
 		
 			// Yellow fade on update
 			(function () {
 				hex = level.toString(16);
 				level++;
 				
-				minicart.UI.subtotalAmount.style.backgroundColor = '#ff' + hex;
+				subtotalEl.style.backgroundColor = '#ff' + hex;
 
 				if (level >= 15) {
-					minicart.UI.subtotalAmount.style.backgroundColor = 'transparent';
+					subtotalEl.style.backgroundColor = 'transparent';
 					
 					// hide the cart if there's no total
 					if (subtotal == '0.00') {
@@ -901,13 +949,14 @@ PAYPAL.apps = PAYPAL.apps || {};
 				to = 0,
 				events = config.events,
 				onShow = events.onShow,
-				afterShow = events.afterShow
-			;
+				afterShow = events.afterShow;
 				
 			if (e && e.preventDefault) { e.preventDefault(); }
 			
 			if (typeof onShow == 'function') {
-				onShow.call(minicart, e);
+				if (onShow.call(minicart, e) === false) {
+					return;
+				}
 			}
 					
 			$.util.animate(minicart.UI.cart, 'top', { from: from, to: to }, function () {
@@ -928,17 +977,19 @@ PAYPAL.apps = PAYPAL.apps || {};
 		 * @param fully {boolean} Should the cart be fully hidden? Optional. Defaults to false.
 		 */
 		minicart.hide = function (e, fully) {
-			var cartHeight = (minicart.UI.cart.offsetHeight) ? minicart.UI.cart.offsetHeight : document.defaultView.getComputedStyle(minicart.UI.cart, '').getPropertyValue('height'),
-				summaryHeight = (minicart.UI.summary.offsetHeight) ? minicart.UI.summary.offsetHeight : document.defaultView.getComputedStyle(minicart.UI.summary, '').getPropertyValue('height'),
-				from = parseInt(minicart.UI.cart.offsetTop, 10),
+			var ui = minicart.UI,
+				cartEl = ui.cart,
+				summaryEl = ui.summary,
+				cartHeight = (cartEl.offsetHeight) ? cartEl.offsetHeight : document.defaultView.getComputedStyle(cartEl, '').getPropertyValue('height'),
+				summaryHeight = (summaryEl.offsetHeight) ? summaryEl.offsetHeight : document.defaultView.getComputedStyle(summaryEl, '').getPropertyValue('height'),
+				from = parseInt(cartEl.offsetTop, 10),
 				events = config.events,
 				onHide = events.onHide,
 				afterHide = events.afterHide,
-				to
-			;
+				to;
 
 			// make the cart fully hidden
-			if (fully || !config.peekEnabled) {
+			if (fully || minicart.products.length === 0 || !config.peekEnabled) {
 				to = cartHeight * -1;
 			// otherwise only show a little teaser portion of it
 			} else {
@@ -948,16 +999,18 @@ PAYPAL.apps = PAYPAL.apps || {};
 			if (e && e.preventDefault) { e.preventDefault(); }
 			
 			if (typeof onHide == 'function') {
-				onHide.call(minicart, e);
+				if (onHide.call(minicart, e) === false) {
+					return;
+				}
 			}
 			
-			$.util.animate(minicart.UI.cart, 'top', { from: from, to: to }, function () {
+			$.util.animate(cartEl, 'top', { from: from, to: to }, function () {
 				if (typeof afterHide == 'function') {
 					afterHide.call(minicart, e);
 				}	
 			});
 			
-			minicart.UI.summary.style.backgroundPosition = '-195px -32px';
+			summaryEl.style.backgroundPosition = '-195px -32px';
 			isShowing = false;
 		};
 		
@@ -980,20 +1033,22 @@ PAYPAL.apps = PAYPAL.apps || {};
 		 * Resets the cart to it's initial state
 		 */
 		minicart.reset = function () {	
-			var events = config.events,
+			var ui = minicart.UI,
+				events = config.events,
 				onReset = events.onReset,
-				afterReset = events.afterReset
-			;
+				afterReset = events.afterReset;
 				
 			if (typeof onReset === 'function') {
-				onReset.call(minicart);
+				if (onReset.call(minicart) === false) {
+					return;
+				}
 			}
 			
 			minicart.products = [];
 
 			if (isShowing) {
-				minicart.UI.itemList.innerHTML = '';
-				minicart.UI.subtotalAmount.innerHTML = '';
+				ui.itemList.innerHTML = '';
+				ui.subtotalAmount.innerHTML = '';
 				minicart.hide(null, true);
 			}
 	
@@ -1018,17 +1073,7 @@ PAYPAL.apps = PAYPAL.apps || {};
 	 * @param position {number} The product number
 	 */
 	var ProductNode = function (data, position) {
-		this.product = null;
-		this.settings = null;
-		this.liNode = null;
-		this.nameNode = null;
-		this.metaNode = null;
-		this.priceNode = null;
-		this.quantityNode = null;
-		this.removeNode = null;
-		this.isPlaceholder = false;
-		
-		this._init(data, position);
+		this._view(data, position);
 	};
 	
 	
@@ -1039,8 +1084,8 @@ PAYPAL.apps = PAYPAL.apps || {};
 		 * @param data {object} The data for the product
 		 * @param position {number} The product number
 		 */
-		_init: function (data, position) {
-			var shortName, fullName, price, discount = 0, hiddenInput, key, i;
+		_view: function (data, position) {
+			var name, price, quantity, discount, discountNum, options, hiddenInput, key;
 
 			this.product = data.product;
 			this.settings = data.settings;
@@ -1048,9 +1093,11 @@ PAYPAL.apps = PAYPAL.apps || {};
 			this.liNode = document.createElement('li');
 			this.nameNode = document.createElement('a');
 			this.metaNode = document.createElement('span');
+			this.discountNode = document.createElement('span');
+			this.discountInput = document.createElement('input');
 			this.priceNode = document.createElement('span');
-			this.quantityNode = document.createElement('input');
-			this.removeNode = document.createElement('input');
+			this.quantityInput = document.createElement('input');
+			this.removeInput = document.createElement('input');
 			
 			// Don't add blank products
 			if (!this.product || (!this.product.item_name && !this.product.item_number)) { 
@@ -1060,12 +1107,11 @@ PAYPAL.apps = PAYPAL.apps || {};
 
 			// Name
 			if (this.product.item_name) { 
-				fullName = this.product.item_name; 
-				shortName = (fullName.length > 20) ? fullName.substr(0, 20) + '...' : fullName;
+				name = this.product.item_name; 
 			}
 			
-			this.nameNode.innerHTML = shortName;
-			this.nameNode.title = fullName;
+			this.nameNode.innerHTML = name;
+			this.nameNode.title = name;
 			this.nameNode.href = this.product.href;
 			this.nameNode.appendChild(this.metaNode);	
 			
@@ -1075,51 +1121,48 @@ PAYPAL.apps = PAYPAL.apps || {};
 			}
 	
 			// Options
-			i = 0;
+			options = this.getOptions();
 			
-			while (typeof this.product['on' + i] !== 'undefined') {
-				this.metaNode.innerHTML += '<br />' + this.product['on' + i] + ': ' + this.product['os' + i];
-				i++;
+			for (key in options) {
+				this.metaNode.innerHTML += '<br />' + key + ': ' + options[key];
 			}
 
 			// Discount
-			if (this.product.discount_amount) { 
-				this.metaNode.innerHTML += '<br />';
-				this.metaNode.innerHTML += config.strings.discount || 'Discount: ';
-				this.metaNode.innerHTML += $.util.formatCurrency(this.product.discount_amount, this.settings.currency_code);
-			}
-
-			// Quantity
-			this.product.quantity = parseInt(this.product.quantity, 10);
+			discount = this.getDiscount();
 			
-			this.quantityNode.name = 'quantity_' + position;
-			this.quantityNode.value = this.product.quantity ? this.product.quantity : 1;
-			this.quantityNode.className = 'quantity';
-			this.quantityNode.setAttribute('autocomplete', 'off');
-
-			// Remove button
-			this.removeNode.type = 'button';
-			this.removeNode.className = 'remove';
+			this.discountInput.type = 'hidden';
+			this.discountInput.name = 'discount_amount_' + position;
+			this.discountInput.value = discount;
+			
+			this.metaNode.appendChild(this.discountNode);
 			
 			// Price
-			price = parseFloat(this.product.amount, 10);
-			
-			if (this.product.discount_amount) {
-				discount = this.product.discount_amount;
-			}
-			
-			this.priceNode.innerHTML = $.util.formatCurrency((price * parseFloat(this.product.quantity, 10) - discount).toFixed(2), this.settings.currency_code);
+			price = this.getPrice();
 			this.priceNode.className = 'price';
 			
+			// Quantity
+			quantity = this.getQuantity();
+			
+			this.quantityInput.name = 'quantity_' + position;
+			this.quantityInput.className = 'quantity';
+			this.quantityInput.setAttribute('autocomplete', 'off');
+			
+			this.setQuantity(quantity);
+			
+			// Remove button
+			this.removeInput.type = 'button';
+			this.removeInput.className = 'remove';
+			
 			// Build out the DOM
-			this.liNode.appendChild(this.nameNode);			
-			this.liNode.appendChild(this.quantityNode);
-			this.liNode.appendChild(this.removeNode);
-			this.liNode.appendChild(this.priceNode);	
+			this.liNode.appendChild(this.nameNode);
+			this.liNode.appendChild(this.quantityInput);
+			this.liNode.appendChild(this.discountInput);
+			this.liNode.appendChild(this.removeInput);
+			this.liNode.appendChild(this.priceNode);
 			
 			// Add in hidden product data
 			for (key in this.product) {
-				if (key !== 'quantity') {
+				if (key !== 'quantity' && key.indexOf('discount_') === -1) {
 					hiddenInput = document.createElement('input');
 					hiddenInput.type = 'hidden';
 					hiddenInput.name = key + '_' + position;
@@ -1132,17 +1175,87 @@ PAYPAL.apps = PAYPAL.apps || {};
 		
 		
 		/**
+		 * Calculates the discount for a product
+		 *
+		 * @return {Object} An object with the discount amount or percentage
+		 */
+		getDiscount: function () {
+			var data = {},
+				discount = 0,
+				discountNum = this.product.discount_num || -1;
+			
+			// Discounts: Amount-based
+			if (this.product.discount_amount) { 
+				// Discount amount for the first item
+				discount = parseFloat(this.product.discount_amount);
+
+				// Discount amount for each additional item
+				if (this.product.discount_amount2) {
+					quantity = this.getQuantity();
+					
+					if (quantity > 1) {
+						discount += Math.max(quantity - 1, discountNum) * parseFloat(this.product.discount_amount2);
+					}
+				} 
+
+			// Discounts: Percentage-based
+			} else if (this.product.discount_rate) { 
+				// Discount amount on the first item
+				discount = this.product.amount * parseFloat(this.product.discount_rate) / 100;
+				
+				// Discount amount for each additional item
+				if (this.product.discount_rate2) {
+					quantity = this.getQuantity();
+					
+					if (quantity > 1) {
+						discount += Math.max(quantity - 1, discountNum) * this.product.amount * parseFloat(this.product.discount_amount2) / 100;
+					}
+				}
+			}
+			
+			return discount && discount.toFixed(2);
+		},
+		
+		
+		/**
+		 * Returns an object of options for the product
+		 *
+		 * @return {Object} 
+		 */
+		getOptions: function () {
+			var options = {},
+				i = 0;
+			
+			while (typeof this.product['on' + i] !== 'undefined') {
+				options[this.product['on' + i]] = this.product['os' + i];
+				i++;
+			}
+			
+			return options;
+		},
+		
+		
+		/**
 		 * Utility function to set the quantity of this product
 		 *
 		 * @param value {number} The new value
 		 */
 		setQuantity: function (value) {
-			value = parseInt(value, 10);
+			var discount;
 			
+			value = parseInt(value, 10);
 			this.product.quantity = value;	
 			
-			if (this.quantityNode.value != value) {
-				this.quantityNode.value = value;
+			if (this.quantityInput.value != value) {
+				this.quantityInput.value = value;
+				
+				if ((discount = this.getDiscount())) {
+					this.discountInput.value = discount;
+					
+					this.discountNode.innerHTML  = '<br />';
+					this.discountNode.innerHTML += config.strings.discount || 'Discount: ';
+					this.discountNode.innerHTML += $.util.formatCurrency(discount, this.settings.currency_code);
+				}
 			}
 			
 			this.setPrice(this.product.amount * value);
@@ -1155,7 +1268,7 @@ PAYPAL.apps = PAYPAL.apps || {};
 		 * @return {number}
 		 */
 		getQuantity: function () {
-			return parseFloat(this.quantityNode.value, 10);
+			return (typeof this.product.quantity !== undefined) ? this.product.quantity : 1;
 		},
 		
 		
@@ -1167,7 +1280,7 @@ PAYPAL.apps = PAYPAL.apps || {};
 		setPrice: function (value) {
 			value = parseFloat(value, 10);
 						
-			this.priceNode.innerHTML = $.util.formatCurrency(parseFloat(value, 10).toFixed(2), this.settings.currency_code);
+			this.priceNode.innerHTML = $.util.formatCurrency(value.toFixed(2), this.settings.currency_code);
 		},
 		
 		
@@ -1177,7 +1290,7 @@ PAYPAL.apps = PAYPAL.apps || {};
 		 * @return {number} 
 		 */
 		getPrice: function () {
-			return (this.product.amount * this.getQuantity());
+			return (this.product.amount * this.getQuantity()).toFixed(2);
 		}
 	};
 	
@@ -1217,8 +1330,7 @@ PAYPAL.apps = PAYPAL.apps || {};
 				 */
 				save: function (items) {
 					var data = [],
-						item, len, i
-					;
+						item, len, i;
 					
 					if (items) {
 						for (i = 0, len = items.length; i < len; i++) { 
@@ -1254,8 +1366,7 @@ PAYPAL.apps = PAYPAL.apps || {};
 				 */
 				load: function () {
 					var key = name + '=', 
-						data, cookies, cookie, value, i
-					;
+						data, cookies, cookie, value, i;
 
 					try {
 						cookies = document.cookie.split(';');
@@ -1286,8 +1397,7 @@ PAYPAL.apps = PAYPAL.apps || {};
 				save: function (items, duration) {
 					var date = new Date(),
 						data = [],
-						item, len, i
-					;
+						item, len, i;
 
 					if (items) {
 						for (i = 0, len = items.length; i < len; i++) {
@@ -1317,77 +1427,114 @@ PAYPAL.apps = PAYPAL.apps || {};
 	})();
 	
 	
-	$.event = {
+	$.event = (function () {
 		/**
 		 * Events are added here for easy reference
 		 */
-		cache: [],
+		var cache = [];
 		
-		
-		/**
-		 * Cross browser way to add an event to an object and optionally adjust it's scope
-		 *
-		 * @param obj {HTMLElement} The object to attach the event to
-		 * @param type {string} The type of event excluding "on"
-		 * @param fn {function} The function
-		 * @param scope {object} Object to adjust the scope to (optional)
-		 */
-		add: function (obj, type, fn, scope) {
-			var wrappedFn;
+		// Non-IE events
+		if (document.addEventListener) {
+			return {
+				/**
+				 * Add an event to an object and optionally adjust it's scope
+				 *
+				 * @param obj {HTMLElement} The object to attach the event to
+				 * @param type {string} The type of event excluding "on"
+				 * @param fn {function} The function
+				 * @param scope {object} Object to adjust the scope to (optional)
+				 */
+				add: function (obj, type, fn, scope) {
+					scope = scope || obj; 
+					
+					var wrappedFn = function (e) { fn.call(scope, e); };
 						
-			scope = scope || obj; 
+					obj.addEventListener(type, wrappedFn, false);
+					cache.push([obj, type, fn, wrappedFn]);
+				},
 
-			if (obj.addEventListener) {
-				wrappedFn = function (e) { fn.call(scope, e); };
-				obj.addEventListener(type, wrappedFn, false);
-			} else if (obj.attachEvent) {
-				wrappedFn = function () {
-					var e = window.event;
-					e.target = e.target || e.srcElement;
 
-					e.preventDefault = function () {
-						e.returnValue = false;
+				/**
+				 * Remove an event from an object
+				 *
+				 * @param obj {HTMLElement} The object to remove the event from
+				 * @param type {string} The type of event excluding "on"
+				 * @param fn {function} The function
+				 */
+				remove: function (obj, type, fn) {
+					var wrappedFn, item, len, i;
+
+					for (i = 0; i < cache.length; i++) {
+						item = cache[i];
+
+						if (item[0] == obj && item[1] == type && item[2] == fn) {
+							wrappedFn = item[3];
+
+							if (wrappedFn) {
+								obj.removeEventListener(type, wrappedFn, false);
+								delete cache[i];
+							}
+						}
+					}
+				}				
+			};
+			
+		// IE events
+		} else if (document.attachEvent) {
+			return {
+				/**
+				 * Add an event to an object and optionally adjust it's scope (IE)
+				 *
+				 * @param obj {HTMLElement} The object to attach the event to
+				 * @param type {string} The type of event excluding "on"
+				 * @param fn {function} The function
+				 * @param scope {object} Object to adjust the scope to (optional)
+				 */
+				add: function (obj, type, fn, scope) {
+					scope = scope || obj; 
+					
+					var wrappedFn = function () {
+						var e = window.event;
+						e.target = e.target || e.srcElement;
+
+						e.preventDefault = function () {
+							e.returnValue = false;
+						};
+
+						fn.call(scope, e);
 					};
 
-					fn.call(scope, e);
-				};
+					obj.attachEvent('on' + type, wrappedFn);
+					cache.push([obj, type, fn, wrappedFn]);
+				},
 
-				obj.attachEvent('on' + type, wrappedFn);
-			}
 
-			this.cache.push([obj, type, fn, wrappedFn]);
-		},
-		
-		
-		/**
-		 * Cross browser way to remove an event from an object
-		 *
-		 * @param obj {HTMLElement} The object to remove the event from
-		 * @param type {string} The type of event excluding "on"
-		 * @param fn {function} The function
-		 */
-		remove: function (obj, type, fn) {
-			var wrappedFn, item, len, i;
+				/**
+				 * Remove an event from an object (IE)
+				 *
+				 * @param obj {HTMLElement} The object to remove the event from
+				 * @param type {string} The type of event excluding "on"
+				 * @param fn {function} The function
+				 */
+				remove: function (obj, type, fn) {
+					var wrappedFn, item, len, i;
 
-			for (i = 0; i < this.cache.length; i++) {
-				item = this.cache[i];
+					for (i = 0; i < cache.length; i++) {
+						item = cache[i];
 
-				if (item[0] == obj && item[1] == type && item[2] == fn) {
-					wrappedFn = item[3];
+						if (item[0] == obj && item[1] == type && item[2] == fn) {
+							wrappedFn = item[3];
 
-					if (wrappedFn) {
-						if (obj.removeEventListener) {
-							obj.removeEventListener(type, wrappedFn, false);
-						} else if (obj.detachEvent) {
-							obj.detachEvent('on' + type, wrappedFn);
+							if (wrappedFn) {
+								obj.detachEvent('on' + type, wrappedFn);
+								delete cache[i];
+							}
 						}
-						
-						delete this.cache[i];
 					}
 				}
-			}
+			};
 		}
-	};
+	})();
 	
 	
 	$.util = {
@@ -1407,8 +1554,7 @@ PAYPAL.apps = PAYPAL.apps || {};
 			config.unit = (/top|bottom|left|right|width|height/.test(prop)) ? 'px' : '';
 
 			var step = (config.to - config.from) / 20,
-				current = config.from
-			;
+				current = config.from;
 
 			(function () {
 				el.style[prop] = current + config.unit;
@@ -1525,14 +1671,9 @@ PAYPAL.apps = PAYPAL.apps || {};
 					XCD: { before: '$' },
 					ZAR: { before: 'R' }			
 				},
-				currency = currencies[code],
-				before, 
-				after;
-			
-			if (currency) {
-				before = currency.before || '';
+				currency = currencies[code] || {},
+				before = currency.before || '',
 				after = currency.after || '';
-			}
 	
 			return before + amount + after;
 		}
