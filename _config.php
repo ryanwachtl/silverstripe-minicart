@@ -2,7 +2,7 @@
 
 define('MODULE_MINICART_DIR', 'module_minicart');
 
-DataObject::add_extension('SiteTree', 'MiniCart');
+DataObject::add_extension('Page', 'MiniCart');
 
 ShortcodeParser::get()->register('mini_cart_item', array('MiniCart', 'MiniCartItemShortcodeHandler'));
 
