@@ -1,6 +1,6 @@
 <?php
 
-define('MODULE_MINICART_DIR', 'mini-cart');
+define('MODULE_MINICART_DIR', 'module_minicart');
 
 DataObject::add_extension('SiteTree', 'MiniCart');
 

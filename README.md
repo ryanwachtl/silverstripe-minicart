@@ -1,6 +1,6 @@
 ## Overview
 
- SilverStripe module for integrating the PayPal [Mini Cart](https://github.com/jeffharrell/MiniCart). Requires SilverStripe 2.4.x
+ SilverStripe module for integrating the PayPal [Mini Cart](https://github.com/jeffharrell/MiniCart). Requires SilverStripe 3.0.x
 
 ## Installation ##
 
