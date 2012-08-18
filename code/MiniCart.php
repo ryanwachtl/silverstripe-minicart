@@ -1,6 +1,6 @@
 <?php
 
-class MiniCart extends DataObjectDecorator {
+class MiniCart extends DataExtension {
 	
 	protected static $business_email = "labs-feedback-minicart@paypal.com";
 	protected static $currency_code = "USD";
@@ -58,9 +58,15 @@ class MiniCart extends DataObjectDecorator {
 	
 	function contentcontrollerInit($controller) {
 		Requirements::javascript(
-			MODULE_MINICART_DIR . '/thirdparty/minicart/minicart.js'
+			MODULE_MINICART_DIR . '/vendor/minicart/minicart.js'
 		);
-		Requirements::customScript('PAYPAL.apps.MiniCart.render();', 'minicart');
+		Requirements::customScript('PAYPAL.apps.MiniCart.render({
+			strings: {
+				button: "Checkout",
+				subtotal: "Subtotal: ",
+				shipping: "does not include shipping &amp; tax"
+			}
+		});', 'minicart');
 	}
 	
 }
