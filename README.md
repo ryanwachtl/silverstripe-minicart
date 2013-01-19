@@ -4,6 +4,7 @@
 
 ## Installation ##
 
+ * cd ~/Sites/yourSilverStripeProject/
  * git clone https://github.com/ryanwachtl/silverstripe-mini-cart-module.git minicart
  * Adjust settings as needed in _config.php
  * Run `/dev/build`
