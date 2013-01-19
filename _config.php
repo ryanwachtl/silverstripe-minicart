@@ -34,7 +34,7 @@ MiniCart::set_cart_config(array(
 	),
 	
 	// The edge of the page the cart should pin to. Set to left or right.
-	'displayEdge' => 'left',
+	'displayEdge' => 'right',
 	
 	// Distance from the edge the cart should appear.
 	'edgeDistance' => '50px',
