@@ -39,7 +39,7 @@ class MiniCart extends DataExtension {
 		$config = self::$cart_config;
 		
 		if ($config && is_array($config)) {
-			return json_encode($config);
+			return Convert::array2json($config);
 		}
 		
 		return;
