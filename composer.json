@@ -1,0 +1,22 @@
+{
+	"name": "silverstripe/minicart",
+	"type": "silverstripe-module",
+	"description": "SilverStripe 3 PayPal Mini Cart Module",
+	"keywords": ["silverstripe", "paypal", "cart", "ecommerce"],
+	"license": "eBay Open Source License Agreement",
+	"authors": [
+		{
+			"name": "Ryan Wachtl",
+			"homepage": "http://ryanwachtl.com"
+		}
+	],
+	"require": 
+	{
+		"php": ">=5.3.2",
+		"silverstripe/framework": "3.*",
+		"silverstripe/cms": "3.*"
+	},
+	"support": {
+		"issues": "https://github.com/ryanwachtl/silverstripe-mini-cart-module/issues"
+	}
+}
