@@ -4,12 +4,21 @@ The Mini Cart
 The Mini Cart is a great way to improve your PayPal integration by creating an overlay which appears as a user adds products to their cart. It’s a simple change that creates a wonderful new experience for your website!
 
 
+1. [Setup](#interested-let%E2%80%99s-get-you-setup)
+2. [Customization](#customization)
+3. [Event callback examples](#event-callback-examples)
+4. [Localization](#localization)
+5. [JavaScript API](#javascript-api)
+6. [FAQ](#faq)
+7. [Questions or comments](#questions-or-comments)
+
+
 
 Interested? Let’s get you setup
 -------------------------------
 
 1. Start with a PayPal [Add to Cart Button](https://www.paypal.com/cgi-bin/webscr?cmd=p/xcl/web-accept-to-sc-button-outside)
-2. Download the latest [minicart.js](https://raw.github.com/jeffharrell/MiniCart/master/minicart.js) – You can also browse the [tagged versions](https://github.com/jeffharrell/MiniCart/tags)
+2. Download the latest [minicart.js](https://raw.github.com/jeffharrell/MiniCart/master/dist/minicart.min.js) – You can also browse the [tagged versions](https://github.com/jeffharrell/MiniCart/tags)
 3. Next, include the following snippet of JavaScript code into your HTML file before the closing &lt;/body&gt; tag
 
 Make sure to update the path to point to your downloaded copy of minicart.js!
@@ -58,7 +67,7 @@ An object of localizable text strings used:
 * `shipping` - The shipping text  
 
 `events`  
-An object of customizable callbacks:  
+An object of customizable callbacks (see [Event callback examples](#event-callback-examples)):  
 
 * `onRender` - Event before the cart is rendered  
 * `afterRender` - Event after the cart is rendered  
@@ -90,6 +99,18 @@ The scope of all events is adjusted to the Mini Cart to allow access to the prod
 			}
         });
     </script> 
+
+
+
+Event callback examples
+-----------------------
+
+Examples of how you can use the event callbacks:
+
+* [Preventing checkout until terms are accepted](http://www.minicartjs.com/examples/terms.html)
+* [Requiring a minimum quantity to checkout](http://www.minicartjs.com/examples/minquantity.html)
+* [Only allowing a fixed quantity per item](http://www.minicartjs.com/examples/fixedquantity.html)
+* [Supporting multiple options per item](http://www.minicartjs.com/examples/options.html)
 
 
 
@@ -201,7 +222,7 @@ Note that using an additional id of #myPage in your CSS causes the rule to be mo
 Questions or comments
 ---------------------
 
-We're working to create a perfect experience with the PayPal Mini Cart. If you have questions or suggestions, please use the [issue tracker](https://github.com/jeffharrell/MiniCart/issues) at Github.
+If you have questions or suggestions, please use the [issue tracker](https://github.com/jeffharrell/MiniCart/issues) at Github.
 
 
 
