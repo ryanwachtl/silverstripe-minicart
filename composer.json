@@ -1,5 +1,5 @@
 {
-	"name": "rywa/silverstripe-minicart",
+	"name": "rywa/minicart",
 	"type": "silverstripe-module",
 	"description": "SilverStripe 3 PayPal Mini Cart Module",
 	"keywords": ["silverstripe", "paypal", "cart", "ecommerce"],
