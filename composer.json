@@ -1,5 +1,5 @@
 {
-	"name": "rywa/minicart",
+	"name": "rywa/silverstripe-minicart",
 	"type": "silverstripe-module",
 	"description": "SilverStripe 3 PayPal Mini Cart Module",
 	"keywords": ["silverstripe", "paypal", "cart", "ecommerce"],
@@ -15,6 +15,10 @@
 		"composer/installers": "*",
 		"silverstripe/framework": ">=3.0",
 		"silverstripe/cms": ">=3.0"
+	},
+	"extras":
+	{
+		"installer-name": "minicart"
 	},
 	"support": {
 		"issues": "https://github.com/ryanwachtl/silverstripe-mini-cart-module/issues"
