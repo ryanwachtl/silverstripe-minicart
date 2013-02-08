@@ -52,6 +52,6 @@ MiniCart::set_cart_config(array(
 	'paypalURL' => 'https://www.paypal.com/cgi-bin/webscr',
 	
 	// The base URL to the visual assets
-	'assetURL' => MODULE_MINICART_DIR . '/vendor/minicart/'
+	'assetURL' => MODULE_MINICART_DIR . '/vendor/MiniCart/'
 	
 ));
