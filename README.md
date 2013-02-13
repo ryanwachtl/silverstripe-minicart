@@ -9,9 +9,9 @@
  * Adjust settings as needed in _config.php
  * Run `/dev/build`
  
- ## Composer ##
+## Composer ##
  
- `composer require rywa/minicart dev-master`
+`composer require rywa/silverstripe-minicart dev-master`
 
 ## Use ##
 
