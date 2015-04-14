@@ -82,9 +82,9 @@ class MiniCart extends DataExtension {
 	}
 	
 	function contentcontrollerInit($controller) {
-		$minicart_js_path = '/vendor/minicart/dist/minicart.min.js';
+		$minicart_js_path = '/vendor/MiniCart/dist/minicart.min.js';
 		if (Director::isDev()) {
-			$minicart_js_path = '/vendor/minicart/dist/minicart.js';
+			$minicart_js_path = '/vendor/MiniCart/dist/minicart.js';
 		}
 		Requirements::javascript(MODULE_MINICART_DIR . $minicart_js_path);
 		Requirements::customScript('PAYPAL.apps.MiniCart.render(' . $this->getCartCustomizations() . ');', 'minicart');
