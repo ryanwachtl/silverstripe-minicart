@@ -8,7 +8,7 @@ Minicart.js integration for your SilverStripe CMS project. A great way to improv
 ## Installation
 
 ```
-composer require rywa/silverstripe-minicart 1.0.x-dev
+composer require rywa/silverstripe-minicart
 ```
 
 ## License
