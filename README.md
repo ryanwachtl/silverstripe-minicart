@@ -1,37 +1,18 @@
 # SilverStripe Minicart.js Module
 
-Minicart.js integration for your SilverStripe CMS project. The minicart is a great way to improve your PayPal shopping cart integration.
+Minicart.js integration for your SilverStripe CMS project. A great way to improve the PayPal shopping cart experience.
 
 ## Requirements
  * SilverStripe ^3.1
 
 ## Installation
-Add some installation instructions here, having a 1 line composer copy and paste is useful.
-Here is a composer command to create a new module project. Ensure you read the ['publishing a module']
-(https://docs.silverstripe.org/en/developer_guides/extending/how_tos/publish_a_module/) guide update you module
-composer.json to designate your code as a SilverStripe module.
 
 ```
-composer require rywa/silverstripe-minicart 2.0.x-dev
+composer require rywa/silverstripe-minicart 1.0.x-dev
 ```
 
 ## License
 See [License](license.md)
-
-## Documentation
- * [Documentation readme](docs/en/readme.md)
-
-Provide a yaml code example where possible.
-
-```yaml
-
-Page:
-  config_option: true
-  another_config:
-    - item1
-    - item2
-
-```
 
 ## Maintainers
  * Ryan Wachtl <ryan@beyondusability.pro>
