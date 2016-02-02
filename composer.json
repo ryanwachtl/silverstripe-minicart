@@ -1,26 +1,27 @@
 {
-	"name": "rywa/silverstripe-minicart",
-	"type": "silverstripe-module",
-	"description": "SilverStripe 3 PayPal Mini Cart Module",
-	"keywords": ["silverstripe", "paypal", "cart", "ecommerce"],
-	"license": "eBay Open Source License Agreement",
-	"authors": [
-		{
-			"name": "Ryan Wachtl",
-			"homepage": "http://ryanwachtl.com"
-		}
-	],
-	"require": 
-	{
-		"composer/installers": "*",
-		"silverstripe/framework": ">=3.0",
-		"silverstripe/cms": ">=3.0"
-	},
-	"extras":
-	{
-		"installer-name": "minicart"
-	},
-	"support": {
-		"issues": "https://github.com/ryanwachtl/silverstripe-mini-cart-module/issues"
-	}
+    "name": "rywa/silverstripe-minicart",
+    "type": "silverstripe-module",
+    "description": "SilverStripe 3 PayPal Minicart.js Module",
+    "keywords": ["silverstripe", "paypal", "cart", "ecommerce", "minicart"],
+    "license": "BSD-3-Clause",
+    "authors": [
+        {
+            "name": "Ryan Wachtl",
+            "homepage": "http://beyondusability.pro"
+        }
+    ],
+    "require": {
+        "silverstripe/framework": ">=3.1",
+        "silverstripe/cms": ">=3.1"
+    },
+    "extras": {
+        "installer-name": "minicart",
+        "branch-alias": {
+            "dev-master": "1.0.x-dev"
+        }
+    },
+    "support": {
+        "issues": "https://github.com/ryanwachtl/silverstripe-minicart/issues"
+    }
+    "minimum-stability": "dev"
 }

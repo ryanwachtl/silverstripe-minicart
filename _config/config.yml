@@ -1,0 +1,13 @@
+---
+Name: MiniCart
+---
+
+# load cart js on pages
+SiteTree:
+  extensions:
+    - MiniCartPageExtension
+
+# cms settings for cart
+SiteConfig:
+  extensions:
+    - MiniCartSiteConfig

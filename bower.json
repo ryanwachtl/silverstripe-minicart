@@ -1,0 +1,7 @@
+{
+    "name": "silverstripe-mincart",
+    "description": "JavaScript Components for the SilverStripe 3 PayPal Minicart.js Module",
+    "devDependencies": {
+        "minicart": "~3.0.6"
+    }
+}

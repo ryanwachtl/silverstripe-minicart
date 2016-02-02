@@ -1,0 +1,28 @@
+{
+  "name": "minicart",
+  "homepage": "http://minicartjs.com",
+  "description": "The minicart is a great way to improve your PayPal shopping cart integration.",
+  "main": "dist/minicart.js",
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "Gruntfile.js",
+    "bin",
+    "examples",
+    "tasks"
+  ],
+  "version": "3.0.6",
+  "_release": "3.0.6",
+  "_resolution": {
+    "type": "version",
+    "tag": "v3.0.6",
+    "commit": "962c94e8ea6e2b6e9eeea15091a4a66a289cb0bf"
+  },
+  "_source": "git://github.com/jeffharrell/minicart.git",
+  "_target": "~3.0.6",
+  "_originalSource": "minicart",
+  "_direct": true
+}

@@ -1,85 +1,54 @@
-## Overview
+# SilverStripe Minicart.js Module
 
- SilverStripe module that adds the PayPal [Mini Cart](https://github.com/jeffharrell/MiniCart) to your SilverStripe Pages. Requires SilverStripe 3.0.x
+Minicart.js integration for your SilverStripe CMS project. The minicart is a great way to improve your PayPal shopping cart integration.
 
-## Installation ##
+## Requirements
+ * SilverStripe ^3.1
 
- * cd ~/Sites/yourSilverStripeProject/
- * git clone https://github.com/ryanwachtl/silverstripe-mini-cart-module.git minicart
- * Adjust settings as needed in _config.php
- * Run `/dev/build`
- 
-## Composer ##
- 
-`composer require rywa/silverstripe-minicart dev-master`
+## Installation
+Add some installation instructions here, having a 1 line composer copy and paste is useful.
+Here is a composer command to create a new module project. Ensure you read the ['publishing a module']
+(https://docs.silverstripe.org/en/developer_guides/extending/how_tos/publish_a_module/) guide update you module
+composer.json to designate your code as a SilverStripe module.
 
-## Settings ##
+```
+composer require rywa/silverstripe-minicart 2.0.x-dev
+```
 
-Place the following settings in your `mysite/_config.php` file and update it with your information:
+## License
+See [License](license.md)
 
-- Your PayPal Email Address `MiniCart::set_business_email('email@example.com');`
-- Currenty Code `MiniCart::set_currency_code('USD');`
-- Transaction Success Page `MiniCart::set_return_url('https://example.com/page?success');`
-- Transaction Canceled Page `MiniCart::set_cancel_return_url('https://example.com/page?cancel');`
-- MiniCart Customizations and Localization (All optional, only use what you need):
+## Documentation
+ * [Documentation readme](docs/en/readme.md)
+
+Provide a yaml code example where possible.
+
+```yaml
+
+Page:
+  config_option: true
+  another_config:
+    - item1
+    - item2
 
 ```
 
-    MiniCart::set_cart_config(array(
-        // Localization
-        'strings' => array(
-            'button' => 'Checkout',
-            'subtotal' => 'Subtotal',
-            'shipping' => 'does not include shipping &amp; tax'
-        ),
-        // The edge of the page the cart should pin to. Set to left or right.
-        'displayEdge' => 'right',
-        // Distance from the edge the cart should appear.
-        'edgeDistance' => '50px',
-        // The base path of your website to set the cookie to (useful for shared website hosting)
-        'cookiePath' => '/',
-        // The number of days to keep the cart data
-        'cartDuration' => 30,
-        // Boolean to determine if the cart should "peek" when it's hidden with items.
-        'peekEnabled' => true,
-        // The PayPal URL to use if you are accessing sandbox or another version of the PayPal website.
-        'paypalURL' => 'https://www.paypal.com/cgi-bin/webscr',
-        // The base URL to the visual assets
-        'assetURL' => MODULE_MINICART_DIR . '/vendor/MiniCart/'
-     ));
+## Maintainers
+ * Ryan Wachtl <ryan@beyondusability.pro>
 
-```
+## Bugtracker
+Bugs are tracked in the issues section of this repository. Before submitting an issue please read over
+existing issues to ensure yours is unique.
 
-## Use ##
+If the issue does look like a new bug:
 
- To add an "add to cart" button to a page insert the following shortcode, replacing the values for `name` and `price`.
+ - Create a new issue
+ - Describe the steps required to reproduce your issue, and the expected outcome. Unit tests, screenshots
+ and screencasts can help here.
+ - Describe your environment as detailed as possible: SilverStripe version, Browser, PHP version,
+ Operating System, any installed SilverStripe modules.
 
- `[mini_cart_item name="ITEM NAME" price="0.00"]`
+Please report security issues to the module maintainers directly. Please don't file security issues in the bugtracker.
 
- or
-
- `[mini_cart_item name="ITEM NAME" price="0.00"]Add To Cart[/mini_cart_item]`
-
- if you want to customize the button text.
-
- You can also place a "View your cart" button into your templates with the `$ViewCart` placeholder. Optionally, pass some alternate text to use for the button. 
-
- example: `$ViewCart(View Basket)`
-
-## Links ##
-
- * [PayPal Mini Cart](https://minicart.paypal-labs.com/) on PayPal Labs
- * [SilverStripe CMS](http://www.silverstripe.org/)
-
-## License ##
-
-	Copyright (c) 2011, Ryan Wachtl
-	All rights reserved.
-
-	Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
-
-	Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
-	
-	Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
-	
-	THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+## Development and contribution
+If you would like to make contributions to the module please ensure you raise a pull request and discuss with the module maintainers.
