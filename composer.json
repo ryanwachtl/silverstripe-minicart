@@ -22,6 +22,6 @@
     },
     "support": {
         "issues": "https://github.com/ryanwachtl/silverstripe-minicart/issues"
-    }
+    },
     "minimum-stability": "dev"
 }
